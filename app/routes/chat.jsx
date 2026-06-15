@@ -126,14 +126,14 @@ async function handleChatSession({
   // Initialize MCP client
   const shopId = request.headers.get("X-Shopify-Shop-Id");
   const shopDomain = request.headers.get("Origin");
-  const { mcpApiUrl } = await getCustomerAccountUrls(shopDomain, conversationId);
+  const customerAccountUrls = shopDomain
+    ? await getCustomerAccountUrls(shopDomain, conversationId)
+    : null;
+  const mcpApiUrl = customerAccountUrls?.mcpApiUrl || null;
 
-  const mcpClient = new MCPClient(
-    shopDomain,
-    conversationId,
-    shopId,
-    mcpApiUrl,
-  );
+  const mcpClient = shopDomain
+    ? new MCPClient(shopDomain, conversationId, shopId, mcpApiUrl)
+    : null;
 
   try {
     // Send conversation ID to client
@@ -142,14 +142,16 @@ async function handleChatSession({
     // Connect to MCP servers and get available tools
     let storefrontMcpTools = [], customerMcpTools = [];
 
-    try {
-      storefrontMcpTools = await mcpClient.connectToStorefrontServer();
-      customerMcpTools = await mcpClient.connectToCustomerServer();
+    if (mcpClient) {
+      try {
+        storefrontMcpTools = await mcpClient.connectToStorefrontServer();
+        customerMcpTools = await mcpClient.connectToCustomerServer();
 
-      console.log(`Connected to MCP with ${storefrontMcpTools.length} tools`);
-      console.log(`Connected to customer MCP with ${customerMcpTools.length} tools`);
-    } catch (error) {
-      console.warn('Failed to connect to MCP servers, continuing without tools:', error.message);
+        console.log(`Connected to MCP with ${storefrontMcpTools.length} tools`);
+        console.log(`Connected to customer MCP with ${customerMcpTools.length} tools`);
+      } catch (error) {
+        console.warn('Failed to connect to MCP servers, continuing without tools:', error.message);
+      }
     }
 
     // Prepare conversation state
@@ -184,7 +186,7 @@ async function handleChatSession({
         {
           messages: conversationHistory,
           promptType,
-          tools: mcpClient.tools
+          tools: mcpClient?.tools || []
         },
         {
           // Handle text chunks

@@ -1,19 +1,35 @@
 /**
  * Claude Service
- * Manages interactions with the Claude API
+ * Manages interactions with the Claude API via Anthropic Direct SDK or AWS Bedrock
  */
-import { Anthropic } from "@anthropic-ai/sdk";
+import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import AppConfig from "./config.server";
 import systemPrompts from "../prompts/prompts.json";
 
 /**
- * Creates a Claude service instance
- * @param {string} apiKey - Claude API key
+ * Creates a Claude service instance using Anthropic Direct SDK or AWS Bedrock
  * @returns {Object} Claude service with methods for interacting with Claude API
  */
-export function createClaudeService(apiKey = process.env.CLAUDE_API_KEY) {
-  // Initialize Claude client
-  const anthropic = new Anthropic({ apiKey });
+export function createClaudeService() {
+  let anthropic;
+  let modelName = AppConfig.api.defaultModel;
+
+  if (process.env.CLAUDE_API_KEY) {
+    console.log("Initializing Direct Anthropic API Client...");
+    anthropic = new Anthropic({
+      apiKey: process.env.CLAUDE_API_KEY,
+    });
+    // Check if the default model is AWS Bedrock specific. If so, switch to direct Anthropic equivalent.
+    if (modelName.startsWith("us.anthropic.") || modelName.includes("bedrock")) {
+      modelName = "claude-3-5-sonnet-latest";
+    }
+  } else {
+    console.log("Initializing AWS Bedrock Client...");
+    anthropic = new AnthropicBedrock({
+      awsRegion: process.env.AWS_REGION || "us-east-1",
+    });
+  }
 
   /**
    * Streams a conversation with Claude
@@ -37,7 +53,7 @@ export function createClaudeService(apiKey = process.env.CLAUDE_API_KEY) {
 
     // Create stream
     const stream = await anthropic.messages.stream({
-      model: AppConfig.api.defaultModel,
+      model: modelName,
       max_tokens: AppConfig.api.maxTokens,
       system: systemInstruction,
       messages,

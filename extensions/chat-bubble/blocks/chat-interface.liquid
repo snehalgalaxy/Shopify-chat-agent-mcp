@@ -1,7 +1,11 @@
 {{ 'chat.css' | asset_url | stylesheet_tag }}
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<div class="shop-ai-chat-container">
+<div class="shop-ai-chat-container" 
+     data-api-url="{{ block.settings.chat_api_url | escape }}"
+     data-prompt-type="{{ block.settings.system_prompt | escape }}"
+     data-welcome-message="{{ block.settings.welcome_message | escape }}"
+     data-shop-id="{{ shop.id }}">
   <div class="shop-ai-chat-bubble" style="background-color: {{ block.settings.chat_bubble_color }}">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -31,19 +35,18 @@
 </div>
 
 <script src="{{ 'chat.js' | asset_url }}" defer></script>
-<script>
-  window.shopChatConfig = {
-    promptType: {{ block.settings.system_prompt | json }},
-    welcomeMessage: {{ block.settings.welcome_message | json }}
-  };
-  window.shopId = {{ shop.id }};
-</script>
 
 {% schema %}
 {
   "name": "AI Chat Assistant",
   "target": "body",
   "settings": [
+    {
+      "type": "text",
+      "id": "chat_api_url",
+      "label": "Chat API URL",
+      "info": "The URL of your chat backend (e.g. Cloudflare Tunnel URL)"
+    },
     {
       "type": "color",
       "id": "chat_bubble_color",

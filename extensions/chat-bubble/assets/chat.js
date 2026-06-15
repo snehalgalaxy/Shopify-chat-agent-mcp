@@ -474,15 +474,20 @@
         let currentMessageElement = null;
 
         try {
-          const promptType = window.shopChatConfig?.promptType || "standardAssistant";
+          const container = ShopAIChat.UI.elements.container;
+          const promptType = container?.dataset.promptType || "standardAssistant";
           const requestBody = JSON.stringify({
             message: userMessage,
             conversation_id: conversationId,
             prompt_type: promptType
           });
 
-          const streamUrl = 'https://localhost:3458/chat';
-          const shopId = window.shopId;
+          const baseUrl = container?.dataset.apiUrl;
+          if (!baseUrl || baseUrl.trim() === '') {
+            throw new Error('Chat API URL is not configured');
+          }
+          const streamUrl = baseUrl.replace(/\/$/, '') + '/chat';
+          const shopId = container?.dataset.shopId;
 
           const response = await fetch(streamUrl, {
             method: 'POST',
@@ -530,8 +535,10 @@
         } catch (error) {
           console.error('Error in streaming:', error);
           ShopAIChat.UI.removeTypingIndicator();
-          ShopAIChat.Message.add("Sorry, I couldn't process your request. Please try again later.",
-            'assistant', messagesContainer);
+          const errorMessage = error.message.includes('not configured')
+            ? "⚠️ Configuration Error: Please set your Chat API URL in the Theme Editor settings."
+            : "Sorry, I couldn't process your request. Please try again later.";
+          ShopAIChat.Message.add(errorMessage, 'assistant', messagesContainer);
         }
       },
 
@@ -630,7 +637,12 @@
           messagesContainer.appendChild(loadingMessage);
 
           // Fetch history from the server
-          const historyUrl = `https://localhost:3458/chat?history=true&conversation_id=${encodeURIComponent(conversationId)}`;
+          const container = ShopAIChat.UI.elements.container;
+          const historyBaseUrl = container?.dataset.apiUrl;
+          if (!historyBaseUrl || historyBaseUrl.trim() === '') {
+            throw new Error('Chat API URL is not configured');
+          }
+          const historyUrl = `${historyBaseUrl.replace(/\/$/, '')}/chat?history=true&conversation_id=${encodeURIComponent(conversationId)}`;
           console.log('Fetching history from:', historyUrl);
 
           const response = await fetch(historyUrl, {
@@ -654,7 +666,8 @@
 
           // No messages, show welcome message
           if (!data.messages || data.messages.length === 0) {
-            const welcomeMessage = window.shopChatConfig?.welcomeMessage || "👋 Hi there! How can I help you today?";
+            const container = ShopAIChat.UI.elements.container;
+            const welcomeMessage = container?.dataset.welcomeMessage || "👋 Hi there! How can I help you today?";
             ShopAIChat.Message.add(welcomeMessage, 'assistant', messagesContainer);
             return;
           }
@@ -686,7 +699,8 @@
           }
 
           // Show error and welcome message
-          const welcomeMessage = window.shopChatConfig?.welcomeMessage || "👋 Hi there! How can I help you today?";
+          const container = ShopAIChat.UI.elements.container;
+          const welcomeMessage = container?.dataset.welcomeMessage || "👋 Hi there! How can I help you today?";
           ShopAIChat.Message.add(welcomeMessage, 'assistant', messagesContainer);
 
           // Clear the conversation ID since we couldn't fetch this conversation
@@ -779,7 +793,12 @@
           attemptCount++;
 
           try {
-            const tokenUrl = 'https://localhost:3458/auth/token-status?conversation_id=' +
+            const container = ShopAIChat.UI.elements.container;
+            const tokenBaseUrl = container?.dataset.apiUrl;
+            if (!tokenBaseUrl || tokenBaseUrl.trim() === '') {
+              throw new Error('Chat API URL is not configured');
+            }
+            const tokenUrl = tokenBaseUrl.replace(/\/$/, '') + '/auth/token-status?conversation_id=' +
               encodeURIComponent(conversationId);
             const response = await fetch(tokenUrl);
 
@@ -919,7 +938,7 @@
         this.API.fetchChatHistory(conversationId, this.UI.elements.messagesContainer);
       } else {
         // No previous conversation, show welcome message
-        const welcomeMessage = window.shopChatConfig?.welcomeMessage || "👋 Hi there! How can I help you today?";
+        const welcomeMessage = container?.dataset.welcomeMessage || "👋 Hi there! How can I help you today?";
         this.Message.add(welcomeMessage, 'assistant', this.UI.elements.messagesContainer);
       }
     }
