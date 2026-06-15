@@ -12,7 +12,7 @@ datasource db {
   //provider = "sqlite"
   //url      = "file:dev.sqlite"
   provider = "postgresql"
-  url      = env("postgresql://shop_chat_db_xgni_user:j2xEN9FZ7mWodvBma8pq5YO6ZdMjesEI@dpg-d8nqlqr7uimc73a5lla0-a.oregon-postgres.render.com/shop_chat_db_xgni")
+  url      = env("DATABASE_URL")
 }
 
 model Session {
